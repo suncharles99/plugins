@@ -257,8 +257,20 @@ FourCharCode const videoFormat = kCVPixelFormatType_32BGRA;
   [_captureSession stopRunning];
 }
 
+- (AVCaptureFlashMode)unserializeFlashMode:(NSNumber *)flashMode {
+     switch ([flashMode integerValue]) {
+         case 1:
+             return AVCaptureFlashModeOn;
+         case 2:
+             return AVCaptureFlashModeAuto;
+         default:
+             return AVCaptureFlashModeOff;
+     }
+ }
+
 - (void)captureToFile:(NSString *)path result:(FlutterResult)result API_AVAILABLE(ios(10)) {
   AVCapturePhotoSettings *settings = [AVCapturePhotoSettings photoSettings];
+  [settings setFlashMode:[self unserializeFlashMode:flashMode]];
   if (_resolutionPreset == max) {
     [settings setHighResolutionPhotoEnabled:YES];
   }
@@ -874,7 +886,7 @@ FourCharCode const videoFormat = kCVPixelFormatType_32BGRA;
     NSUInteger textureId = ((NSNumber *)argsMap[@"textureId"]).unsignedIntegerValue;
     if ([@"takePicture" isEqualToString:call.method]) {
       if (@available(iOS 10.0, *)) {
-        [_camera captureToFile:call.arguments[@"path"] result:result];
+        [_camera captureToFile:call.arguments[@"path"] flashMode:((NSNumber *)call.arguments[@"flashMode"]) result:result];
       } else {
         result(FlutterMethodNotImplemented);
       }

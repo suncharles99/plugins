@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,8 @@ part 'camera_image.dart';
 final MethodChannel _channel = const MethodChannel('plugins.flutter.io/camera');
 
 enum CameraLensDirection { front, back, external }
+
+enum FlashMode { off, on, auto }
 
 /// Affect the quality of video recording and image capture:
 ///
@@ -58,6 +61,20 @@ String serializeResolutionPreset(ResolutionPreset resolutionPreset) {
       return 'low';
   }
   throw ArgumentError('Unknown ResolutionPreset value');
+}
+
+/// Returns the flash mode as a Number.
+int serializeFlashMode(FlashMode flashMode) {
+  switch (flashMode) {
+    case FlashMode.off:
+      return 0;
+    case FlashMode.on:
+    // Have difference on iOS and Android
+      return Platform.isIOS ? 1 : 3;
+    case FlashMode.auto:
+      return 2;
+  }
+  throw ArgumentError('Unknown FlashMode value');
 }
 
 CameraLensDirection _parseCameraLensDirection(String string) {
@@ -339,7 +356,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// The file can be read as this function returns.
   ///
   /// Throws a [CameraException] if the capture fails.
-  Future<void> takePicture(String path) async {
+  Future<void> takePicture(String path, FlashMode flashMode) async {
     if (!value.isInitialized || _isDisposed) {
       throw CameraException(
         'Uninitialized CameraController.',
@@ -356,7 +373,11 @@ class CameraController extends ValueNotifier<CameraValue> {
       value = value.copyWith(isTakingPicture: true);
       await _channel.invokeMethod<void>(
         'takePicture',
-        <String, dynamic>{'textureId': _textureId, 'path': path},
+        <String, dynamic>{
+          'textureId': _textureId,
+          'path': path,
+          'flashMode': serializeFlashMode(flashMode),
+        },
       );
       value = value.copyWith(isTakingPicture: false);
     } on PlatformException catch (e) {
